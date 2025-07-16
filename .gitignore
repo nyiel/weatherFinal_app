@@ -1,20 +1,16 @@
-# Python virtual environment
-venv/
-
-# Bytecode and caches
+# Ignore Python cache
 __pycache__/
 *.pyc
 
-# Logs and SQLite
-*.log
-*.sqlite3
+# Ignore virtual environments
+venv/
 
-# Environment variables
+# Environment files
 .env
 
-# OS files
-.DS_Store
-Thumbs.db
+# Ignore model weights (optional if using gdown)
+*.pth
 
-# VS Code config (optional)
+# VS Code or JetBrains IDE configs (optional)
 .vscode/
+.idea/
