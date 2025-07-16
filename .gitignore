@@ -1,14 +1,20 @@
-# Ignore virtual environments
+# Python virtual environment
 venv/
-__pycache__/
 
-# Ignore system files
+# Bytecode and caches
+__pycache__/
+*.pyc
+
+# Logs and SQLite
+*.log
+*.sqlite3
+
+# Environment variables
+.env
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# Ignore intermediate or unneeded large files
-*.log
-*.tmp
-
-# Optional: If your large file should not be tracked at all
-# *.pt
+# VS Code config (optional)
+.vscode/
