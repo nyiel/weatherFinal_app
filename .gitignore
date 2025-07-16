@@ -14,3 +14,4 @@ venv/
 # VS Code or JetBrains IDE configs (optional)
 .vscode/
 .idea/
+best_model.pth
