@@ -1,0 +1,14 @@
+# Ignore virtual environments
+venv/
+__pycache__/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore intermediate or unneeded large files
+*.log
+*.tmp
+
+# Optional: If your large file should not be tracked at all
+# *.pt
