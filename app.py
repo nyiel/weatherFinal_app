@@ -97,7 +97,7 @@ if image is not None:
     st.image(
         image, 
         caption="Your sky image",
-        use_column_width=True,
+        use_container_width=True,
         width=300
     )
     
