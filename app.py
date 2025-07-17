@@ -4,7 +4,13 @@ import torch
 import time
 from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES, text_to_speech, get_voice_announcement
 
-# 🌐 Page setup
+# �️ Initialize session state for toggles - MUST BE FIRST
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+if 'voice_enabled' not in st.session_state:
+    st.session_state.voice_enabled = False
+
+# �🌐 Page setup
 st.set_page_config(
     page_title="Weather Classifier 🌤️",
     page_icon="🌈",
@@ -13,12 +19,6 @@ st.set_page_config(
 
 # 🌍 Language toggle
 language = st.selectbox("🌐 Language / اللغة", ["English", "العربية"])
-
-# 🎛️ Initialize session state for toggles
-if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = False
-if 'voice_enabled' not in st.session_state:
-    st.session_state.voice_enabled = False
 
 # 🎛️ Modern Settings Section
 st.markdown("### ⚙️ Settings")
