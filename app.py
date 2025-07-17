@@ -2,7 +2,7 @@ import streamlit as st
 from PIL import Image
 import torch
 import time
-from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES
+from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES, text_to_speech, get_voice_announcement
 
 # 🌐 Page setup
 st.set_page_config(
@@ -13,6 +13,50 @@ st.set_page_config(
 
 # 🌍 Language toggle
 language = st.selectbox("🌐 Language / اللغة", ["English", "العربية"])
+
+# 🌗 Dark mode and Voice toggles with icon-only interaction
+# Initialize session state for toggles
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+if 'voice_enabled' not in st.session_state:
+    st.session_state.voice_enabled = False
+
+# Create custom toggle buttons that only respond to icon clicks
+col1, col2 = st.columns(2)
+
+with col1:
+    # Dark mode toggle
+    dark_icon = "🌙" if not st.session_state.dark_mode else "☀️"
+    dark_text = "Enable Dark Mode" if not st.session_state.dark_mode else "Enable Light Mode"
+    
+    if st.button(f"{dark_icon}", key="dark_toggle", help=dark_text):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.rerun()
+        
+    # Show dark mode status (message only, no button style)
+    if st.session_state.dark_mode:
+        st.markdown("🌙 **Dark Mode**")
+    else:
+        st.markdown("☀️ **Light Mode**")
+
+with col2:
+    # Voice toggle  
+    voice_icon = "🔊" if st.session_state.voice_enabled else "🔇"
+    voice_text = "Voice Enabled" if st.session_state.voice_enabled else "Voice Disabled"
+    
+    if st.button(f"{voice_icon}", key="voice_toggle", help=voice_text):
+        st.session_state.voice_enabled = not st.session_state.voice_enabled
+        st.rerun()
+        
+    # Show voice status (message only, no button style)
+    if st.session_state.voice_enabled:
+        st.markdown("🔊 **Voice ON**")
+    else:
+        st.markdown("🔇 **Voice OFF**")
+
+# Set variables based on session state
+dark_mode = st.session_state.dark_mode
+voice_enabled = st.session_state.voice_enabled
 
 # 🗣️ Translation dictionary
 T = {
@@ -28,6 +72,8 @@ T = {
         "analyzing": "Analyzing the sky...",
         "prediction": "🌤️ Prediction",
         "confidence": "Confidence Levels:",
+        "voice_announcement": "🔊 Voice announcement enabled",
+        "voice_playing": "🎵 Playing voice announcement...",
         "tips": {
             'Cloudy': "☁️ Overcast skies. Possible light rain.",
             'Rain': "🌧️ Rain expected. Grab an umbrella!",
@@ -69,6 +115,8 @@ This app uses a deep learning model to classify sky images into 4 weather types:
         "analyzing": "جارٍ تحليل السماء...",
         "prediction": "🌤️ التنبؤ",
         "confidence": "مستويات الثقة:",
+        "voice_announcement": "🔊 الإعلان الصوتي مفعل",
+        "voice_playing": "🎵 جارٍ تشغيل الإعلان الصوتي...",
         "tips": {
             'Cloudy': "☁️ سماء ملبدة بالغيوم. احتمال هطول أمطار خفيفة.",
             'Rain': "🌧️ من المتوقع هطول أمطار. لا تنس المظلة!",
@@ -201,6 +249,7 @@ if image is not None:
             img_tensor = preprocess_image(image)
             pred, probs = predict_weather(model, img_tensor)
             class_name = WEATHER_CLASSES[pred]
+            max_confidence = probs[pred]
 
             placeholder = st.empty()
             with placeholder.container():
@@ -217,6 +266,35 @@ if image is not None:
                 st.markdown("</div>", unsafe_allow_html=True)
 
             st.success(L["tips"][class_name])
+            
+            # Voice announcement in Arabic
+            if voice_enabled:
+                # Show voice status
+                voice_status = st.empty()
+                voice_status.info(f"🔊 {L['voice_announcement']}")
+                
+                try:
+                    # Get voice announcement text in Arabic
+                    voice_text = get_voice_announcement(class_name, 'العربية', max_confidence)
+                    
+                    # Use Arabic language code for TTS
+                    lang_code = 'ar'
+                    
+                    # Update status to show playing
+                    voice_status.info(f"🎵 {L['voice_playing']}")
+                    
+                    # Play voice announcement in Arabic
+                    text_to_speech(voice_text, lang_code)
+                    
+                    # Brief delay to show the playing message
+                    time.sleep(1)
+                    
+                    # Update status to show completion
+                    voice_status.success("✅ Voice announcement completed!" if language == "English" else "✅ تم تشغيل الإعلان الصوتي!")
+                    
+                except Exception as e:
+                    voice_status.error(f"❌ Voice error: {str(e)}" if language == "English" else f"❌ خطأ في الصوت: {str(e)}")
+                    st.info("💡 Please check your system's text-to-speech settings" if language == "English" else "💡 يرجى التحقق من إعدادات النص إلى كلام")
 
 # 📌 Sidebar
 with st.sidebar:

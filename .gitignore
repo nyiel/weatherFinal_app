@@ -15,3 +15,4 @@ venv/
 .vscode/
 .idea/
 best_model.pth
+best_model.pthme03ucfp.part

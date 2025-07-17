@@ -5,6 +5,8 @@ import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
 import numpy as np
+import pyttsx3
+import threading
 
 # Define weather class labels
 WEATHER_CLASSES = ['Cloudy', 'Rain', 'Shine', 'Sunrise']
@@ -64,3 +66,81 @@ def predict_weather(model, image):
         _, predicted = torch.max(outputs, 1)
         probabilities = torch.nn.functional.softmax(outputs, dim=1)[0] * 100
     return predicted.item(), probabilities.numpy()
+
+def text_to_speech(text, language='en'):
+    """Convert text to speech with language support."""
+    def speak():
+        try:
+            engine = pyttsx3.init()
+            
+            # Get available voices
+            voices = engine.getProperty('voices')
+            
+            # Set voice based on language
+            if language == 'ar':
+                # Try to find Arabic voice
+                arabic_voice = None
+                for voice in voices:
+                    if 'arabic' in voice.name.lower() or 'ar-' in voice.id.lower():
+                        arabic_voice = voice.id
+                        break
+                
+                if arabic_voice:
+                    engine.setProperty('voice', arabic_voice)
+                else:
+                    # Fallback to slower speech rate for Arabic text
+                    engine.setProperty('rate', 150)
+            else:
+                # Use English voice (usually default)
+                english_voice = None
+                for voice in voices:
+                    if 'english' in voice.name.lower() or 'en-' in voice.id.lower():
+                        english_voice = voice.id
+                        break
+                
+                if english_voice:
+                    engine.setProperty('voice', english_voice)
+                
+                engine.setProperty('rate', 180)
+            
+            # Set volume
+            engine.setProperty('volume', 0.9)
+            
+            # Speak the text
+            engine.say(text)
+            engine.runAndWait()
+            engine.stop()
+            
+        except Exception as e:
+            print(f"TTS Error: {e}")
+    
+    # Run TTS in a separate thread to avoid blocking the UI
+    thread = threading.Thread(target=speak)
+    thread.daemon = True
+    thread.start()
+
+def get_voice_announcement(class_name, language='English', confidence=None):
+    """Get voice announcement text for the predicted weather."""
+    
+    # Voice announcements in both languages
+    voice_texts = {
+        "English": {
+            'Cloudy': f"The weather prediction is Cloudy with {confidence:.1f}% confidence. Overcast skies with possible light rain.",
+            'Rain': f"The weather prediction is Rain with {confidence:.1f}% confidence. Rain is expected, grab an umbrella!",
+            'Shine': f"The weather prediction is Shine with {confidence:.1f}% confidence. Clear skies, great for outdoor activities!",
+            'Sunrise': f"The weather prediction is Sunrise with {confidence:.1f}% confidence. Beautiful sunrise or sunset conditions.",
+        },
+        "العربية": {
+            'Cloudy': f"التنبؤ بالطقس هو غائم بثقة {confidence:.1f}%. سماء ملبدة بالغيوم مع احتمال هطول أمطار خفيفة.",
+            'Rain': f"التنبؤ بالطقس هو ممطر بثقة {confidence:.1f}%. من المتوقع هطول أمطار، لا تنس المظلة!",
+            'Shine': f"التنبؤ بالطقس هو مشمس بثقة {confidence:.1f}%. سماء صافية، طقس مناسب للنشاطات الخارجية!",
+            'Sunrise': f"التنبؤ بالطقس هو شروق بثقة {confidence:.1f}%. شروق أو غروب جميل.",
+        }
+    }
+    
+    if confidence is None:
+        # Simplified version without confidence
+        voice_texts["English"][class_name] = voice_texts["English"][class_name].split(" with")[0] + "."
+        voice_texts["العربية"][class_name] = voice_texts["العربية"][class_name].split(" بثقة")[0] + "."
+    
+    return voice_texts.get(language, voice_texts["English"]).get(class_name, "Weather prediction complete.")
