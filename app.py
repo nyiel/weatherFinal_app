@@ -14,7 +14,13 @@ st.set_page_config(
 # 🌍 Language toggle
 language = st.selectbox("🌐 Language / اللغة", ["English", "العربية"])
 
-# �️ Modern Settings Section
+# 🎛️ Initialize session state for toggles
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+if 'voice_enabled' not in st.session_state:
+    st.session_state.voice_enabled = False
+
+# 🎛️ Modern Settings Section
 st.markdown("### ⚙️ Settings")
 
 # Create better spaced columns for modern layout
@@ -184,10 +190,7 @@ This app uses a deep learning model to classify sky images into 4 weather types:
     }
 }
 
-# 🌗 Dark mode toggle
-dark_mode = st.toggle("🌙 Dark Mode", value=False)
-
-# 🎨 Enhanced Colors based on session state
+#  Enhanced Colors based on session state
 bg_color = "#121212" if st.session_state.dark_mode else "#ffffff"
 text_color = "#e0e0e0" if st.session_state.dark_mode else "#000000"
 header_color = "#90CAF9" if st.session_state.dark_mode else "#0D47A1"
