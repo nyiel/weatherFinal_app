@@ -4,12 +4,23 @@ import torch
 import time
 from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES, text_to_speech, get_voice_announcement
 
-# Version: 2.1 - Fixed session state AttributeError
-# ⚙️ Initialize session state for toggles - MUST BE FIRST
-if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = False
-if 'voice_enabled' not in st.session_state:
-    st.session_state.voice_enabled = False
+# Version: 2.2 - Robust session state with complete defensive programming
+# ⚙️ CRITICAL: Initialize ALL session state variables at the very top
+def init_session_state():
+    """Initialize session state with defensive defaults"""
+    # Force clear any corrupted session state
+    for key in ['dark_mode', 'voice_enabled']:
+        if key not in st.session_state:
+            st.session_state[key] = False
+    
+    # Double-check initialization
+    if not hasattr(st.session_state, 'dark_mode'):
+        st.session_state.dark_mode = False
+    if not hasattr(st.session_state, 'voice_enabled'):
+        st.session_state.voice_enabled = False
+
+# Call initialization immediately - BEFORE ANY OTHER CODE
+init_session_state()
 
 # �🌐 Page setup
 st.set_page_config(
@@ -27,9 +38,9 @@ st.markdown("### ⚙️ Settings")
 # Create better spaced columns for modern layout
 col_space1, col_dark, col_space2, col_voice, col_space3 = st.columns([0.5, 2, 0.3, 2, 0.5])
 
-# Ensure session state is accessible before using it
-dark_mode_state = st.session_state.get('dark_mode', False)
-voice_enabled_state = st.session_state.get('voice_enabled', False)
+# Ensure session state is accessible before using it - DEFENSIVE PROGRAMMING
+dark_mode_state = getattr(st.session_state, 'dark_mode', False) if hasattr(st.session_state, 'dark_mode') else False
+voice_enabled_state = getattr(st.session_state, 'voice_enabled', False) if hasattr(st.session_state, 'voice_enabled') else False
 
 with col_dark:
     # Dark mode toggle with enhanced styling
@@ -38,7 +49,11 @@ with col_dark:
     
     # Create a more prominent button
     if st.button(f"{dark_icon} Mode", key="dark_toggle", help=dark_text, use_container_width=True):
-        st.session_state.dark_mode = not dark_mode_state
+        # Defensive session state update
+        if hasattr(st.session_state, 'dark_mode'):
+            st.session_state.dark_mode = not dark_mode_state
+        else:
+            st.session_state.dark_mode = True
         st.rerun()
     
     # Modern status indicator
@@ -68,7 +83,11 @@ with col_voice:
     
     # Create a more prominent button
     if st.button(f"{voice_icon} Voice", key="voice_toggle", help=voice_text, use_container_width=True):
-        st.session_state.voice_enabled = not voice_enabled_state
+        # Defensive session state update
+        if hasattr(st.session_state, 'voice_enabled'):
+            st.session_state.voice_enabled = not voice_enabled_state
+        else:
+            st.session_state.voice_enabled = True
         st.rerun()
     
     # Modern status indicator
@@ -101,9 +120,9 @@ st.markdown("""
 "></div>
 """, unsafe_allow_html=True)
 
-# Set variables based on session state
-dark_mode = st.session_state.get('dark_mode', False)
-voice_enabled = st.session_state.get('voice_enabled', False)
+# Set variables based on session state - DEFENSIVE ACCESS
+dark_mode = getattr(st.session_state, 'dark_mode', False) if hasattr(st.session_state, 'dark_mode') else False
+voice_enabled = getattr(st.session_state, 'voice_enabled', False) if hasattr(st.session_state, 'voice_enabled') else False
 
 # 🗣️ Translation dictionary
 T = {
