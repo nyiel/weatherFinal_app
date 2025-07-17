@@ -14,29 +14,36 @@ st.set_page_config(
 # 🌗 Dark mode toggle
 dark_mode = st.toggle("🌙 Dark Mode", value=False)
 
-# 💅 Custom styles
-st.markdown(f"""
+# 🎨 Theme-based colors
+bg_color = "#121212" if dark_mode else "#ffffff"
+text_color = "#e0e0e0" if dark_mode else "#000000"
+header_color = "#90CAF9" if dark_mode else "#0D47A1"
+subheader_color = "#B0BEC5" if dark_mode else "#555"
+result_box_color = "#1E1E1E" if dark_mode else "#E3F2FD"
+
+# 💅 Custom CSS with .format() to avoid tokenize error
+st.markdown("""
 <style>
 body {{
-    background-color: {'#121212' if dark_mode else '#ffffff'};
-    color: {'#e0e0e0' if dark_mode else '#000000'};
+    background-color: {bg};
+    color: {text};
 }}
 
 .header {{
     font-size: 40px !important;
     font-weight: 700 !important;
-    color: {'#90CAF9' if dark_mode else '#0D47A1'} !important;
+    color: {header} !important;
     margin-bottom: 10px !important;
 }}
 
 .subheader {{
     font-size: 18px !important;
-    color: {'#B0BEC5' if dark_mode else '#555'} !important;
+    color: {subheader} !important;
     margin-bottom: 30px !important;
 }}
 
 .result-box {{
-    background-color: {'#1E1E1E' if dark_mode else '#E3F2FD'};
+    background-color: {box};
     border-radius: 12px;
     padding: 20px;
     margin-top: 25px;
@@ -62,7 +69,13 @@ body {{
     margin-right: 20px !important;
 }}
 </style>
-""", unsafe_allow_html=True)
+""".format(
+    bg=bg_color,
+    text=text_color,
+    header=header_color,
+    subheader=subheader_color,
+    box=result_box_color
+), unsafe_allow_html=True)
 
 # 🧠 Load model
 @st.cache_resource
