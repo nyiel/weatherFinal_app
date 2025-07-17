@@ -26,20 +26,24 @@ st.markdown("### ⚙️ Settings")
 # Create better spaced columns for modern layout
 col_space1, col_dark, col_space2, col_voice, col_space3 = st.columns([0.5, 2, 0.3, 2, 0.5])
 
+# Ensure session state is accessible before using it
+dark_mode_state = st.session_state.get('dark_mode', False)
+voice_enabled_state = st.session_state.get('voice_enabled', False)
+
 with col_dark:
     # Dark mode toggle with enhanced styling
-    dark_icon = "🌙" if not st.session_state.dark_mode else "☀️"
-    dark_text = "Switch to Dark Mode" if not st.session_state.dark_mode else "Switch to Light Mode"
+    dark_icon = "🌙" if not dark_mode_state else "☀️"
+    dark_text = "Switch to Dark Mode" if not dark_mode_state else "Switch to Light Mode"
     
     # Create a more prominent button
     if st.button(f"{dark_icon} Mode", key="dark_toggle", help=dark_text, use_container_width=True):
-        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.session_state.dark_mode = not dark_mode_state
         st.rerun()
     
     # Modern status indicator
-    status_color = "#1976D2" if not st.session_state.dark_mode else "#90CAF9"
-    status_bg = "#E3F2FD" if not st.session_state.dark_mode else "#1E1E1E"
-    status_text = "☀️ Light Mode" if not st.session_state.dark_mode else "🌙 Dark Mode"
+    status_color = "#1976D2" if not dark_mode_state else "#90CAF9"
+    status_bg = "#E3F2FD" if not dark_mode_state else "#1E1E1E"
+    status_text = "☀️ Light Mode" if not dark_mode_state else "🌙 Dark Mode"
     
     st.markdown(f"""
     <div style="
@@ -58,18 +62,18 @@ with col_dark:
 
 with col_voice:
     # Voice toggle with enhanced styling
-    voice_icon = "🔊" if st.session_state.voice_enabled else "🔇"
-    voice_text = "Enable Voice Announcements" if not st.session_state.voice_enabled else "Disable Voice Announcements"
+    voice_icon = "🔊" if voice_enabled_state else "🔇"
+    voice_text = "Enable Voice Announcements" if not voice_enabled_state else "Disable Voice Announcements"
     
     # Create a more prominent button
     if st.button(f"{voice_icon} Voice", key="voice_toggle", help=voice_text, use_container_width=True):
-        st.session_state.voice_enabled = not st.session_state.voice_enabled
+        st.session_state.voice_enabled = not voice_enabled_state
         st.rerun()
     
     # Modern status indicator
-    status_color = "#4CAF50" if st.session_state.voice_enabled else "#757575"
-    status_bg = "#E8F5E8" if st.session_state.voice_enabled else "#F5F5F5"
-    status_text = "🔊 Voice ON" if st.session_state.voice_enabled else "🔇 Voice OFF"
+    status_color = "#4CAF50" if voice_enabled_state else "#757575"
+    status_bg = "#E8F5E8" if voice_enabled_state else "#F5F5F5"
+    status_text = "🔊 Voice ON" if voice_enabled_state else "🔇 Voice OFF"
     
     st.markdown(f"""
     <div style="
@@ -97,8 +101,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Set variables based on session state
-dark_mode = st.session_state.dark_mode
-voice_enabled = st.session_state.voice_enabled
+dark_mode = st.session_state.get('dark_mode', False)
+voice_enabled = st.session_state.get('voice_enabled', False)
 
 # 🗣️ Translation dictionary
 T = {
@@ -191,13 +195,13 @@ This app uses a deep learning model to classify sky images into 4 weather types:
 }
 
 #  Enhanced Colors based on session state
-bg_color = "#121212" if st.session_state.dark_mode else "#ffffff"
-text_color = "#e0e0e0" if st.session_state.dark_mode else "#000000"
-header_color = "#90CAF9" if st.session_state.dark_mode else "#0D47A1"
-subheader_color = "#B0BEC5" if st.session_state.dark_mode else "#555"
-result_box_color = "#1E1E1E" if st.session_state.dark_mode else "#E3F2FD"
-card_bg = "#2D2D2D" if st.session_state.dark_mode else "#F8F9FA"
-border_color = "#404040" if st.session_state.dark_mode else "#E0E0E0"
+bg_color = "#121212" if dark_mode else "#ffffff"
+text_color = "#e0e0e0" if dark_mode else "#000000"
+header_color = "#90CAF9" if dark_mode else "#0D47A1"
+subheader_color = "#B0BEC5" if dark_mode else "#555"
+result_box_color = "#1E1E1E" if dark_mode else "#E3F2FD"
+card_bg = "#2D2D2D" if dark_mode else "#F8F9FA"
+border_color = "#404040" if dark_mode else "#E0E0E0"
 
 # 💅 Enhanced Custom CSS with Modern Design Standards
 st.markdown("""
