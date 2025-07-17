@@ -4,7 +4,8 @@ import torch
 import time
 from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES, text_to_speech, get_voice_announcement
 
-# �️ Initialize session state for toggles - MUST BE FIRST
+# Version: 2.1 - Fixed session state AttributeError
+# ⚙️ Initialize session state for toggles - MUST BE FIRST
 if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = False
 if 'voice_enabled' not in st.session_state:
