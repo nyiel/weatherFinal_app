@@ -2,9 +2,27 @@ import streamlit as st
 from PIL import Image
 import torch
 import time
-from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES
+from model_utils import load_model, preprocess_image, predict_weather, WEATHER_CLASSES, text_to_speech, get_voice_announcement
 
-# 🌐 Page setup
+# Version: 2.2 - Robust session state with complete defensive programming
+# ⚙️ CRITICAL: Initialize ALL session state variables at the very top
+def init_session_state():
+    """Initialize session state with defensive defaults"""
+    # Force clear any corrupted session state
+    for key in ['dark_mode', 'voice_enabled']:
+        if key not in st.session_state:
+            st.session_state[key] = False
+    
+    # Double-check initialization
+    if not hasattr(st.session_state, 'dark_mode'):
+        st.session_state.dark_mode = False
+    if not hasattr(st.session_state, 'voice_enabled'):
+        st.session_state.voice_enabled = False
+
+# Call initialization immediately - BEFORE ANY OTHER CODE
+init_session_state()
+
+# �🌐 Page setup
 st.set_page_config(
     page_title="Weather Classifier 🌤️",
     page_icon="🌈",
@@ -13,6 +31,98 @@ st.set_page_config(
 
 # 🌍 Language toggle
 language = st.selectbox("🌐 Language / اللغة", ["English", "العربية"])
+
+# 🎛️ Modern Settings Section
+st.markdown("### ⚙️ Settings")
+
+# Create better spaced columns for modern layout
+col_space1, col_dark, col_space2, col_voice, col_space3 = st.columns([0.5, 2, 0.3, 2, 0.5])
+
+# Ensure session state is accessible before using it - DEFENSIVE PROGRAMMING
+dark_mode_state = getattr(st.session_state, 'dark_mode', False) if hasattr(st.session_state, 'dark_mode') else False
+voice_enabled_state = getattr(st.session_state, 'voice_enabled', False) if hasattr(st.session_state, 'voice_enabled') else False
+
+with col_dark:
+    # Dark mode toggle with enhanced styling
+    dark_icon = "🌙" if not dark_mode_state else "☀️"
+    dark_text = "Switch to Dark Mode" if not dark_mode_state else "Switch to Light Mode"
+    
+    # Create a more prominent button
+    if st.button(f"{dark_icon} Mode", key="dark_toggle", help=dark_text, use_container_width=True):
+        # Defensive session state update
+        if hasattr(st.session_state, 'dark_mode'):
+            st.session_state.dark_mode = not dark_mode_state
+        else:
+            st.session_state.dark_mode = True
+        st.rerun()
+    
+    # Modern status indicator
+    status_color = "#1976D2" if not dark_mode_state else "#90CAF9"
+    status_bg = "#E3F2FD" if not dark_mode_state else "#1E1E1E"
+    status_text = "☀️ Light Mode" if not dark_mode_state else "🌙 Dark Mode"
+    
+    st.markdown(f"""
+    <div style="
+        background: {status_bg}; 
+        color: {status_color}; 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        text-align: center; 
+        font-weight: 600;
+        border: 1px solid {status_color}30;
+        margin-top: 8px;
+    ">
+        {status_text}
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_voice:
+    # Voice toggle with enhanced styling
+    voice_icon = "🔊" if voice_enabled_state else "🔇"
+    voice_text = "Enable Voice Announcements" if not voice_enabled_state else "Disable Voice Announcements"
+    
+    # Create a more prominent button
+    if st.button(f"{voice_icon} Voice", key="voice_toggle", help=voice_text, use_container_width=True):
+        # Defensive session state update
+        if hasattr(st.session_state, 'voice_enabled'):
+            st.session_state.voice_enabled = not voice_enabled_state
+        else:
+            st.session_state.voice_enabled = True
+        st.rerun()
+    
+    # Modern status indicator
+    status_color = "#4CAF50" if voice_enabled_state else "#757575"
+    status_bg = "#E8F5E8" if voice_enabled_state else "#F5F5F5"
+    status_text = "🔊 Voice ON" if voice_enabled_state else "🔇 Voice OFF"
+    
+    st.markdown(f"""
+    <div style="
+        background: {status_bg}; 
+        color: {status_color}; 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        text-align: center; 
+        font-weight: 600;
+        border: 1px solid {status_color}30;
+        margin-top: 8px;
+    ">
+        {status_text}
+    </div>
+    """, unsafe_allow_html=True)
+
+# Add a stylish separator
+st.markdown("""
+<div style="
+    height: 2px; 
+    background: linear-gradient(90deg, transparent, #667eea, transparent); 
+    margin: 20px 0;
+    border-radius: 1px;
+"></div>
+""", unsafe_allow_html=True)
+
+# Set variables based on session state - DEFENSIVE ACCESS
+dark_mode = getattr(st.session_state, 'dark_mode', False) if hasattr(st.session_state, 'dark_mode') else False
+voice_enabled = getattr(st.session_state, 'voice_enabled', False) if hasattr(st.session_state, 'voice_enabled') else False
 
 # 🗣️ Translation dictionary
 T = {
@@ -28,6 +138,8 @@ T = {
         "analyzing": "Analyzing the sky...",
         "prediction": "🌤️ Prediction",
         "confidence": "Confidence Levels:",
+        "voice_announcement": "🔊 Voice announcement enabled",
+        "voice_playing": "🎵 Playing voice announcement...",
         "tips": {
             'Cloudy': "☁️ Overcast skies. Possible light rain.",
             'Rain': "🌧️ Rain expected. Grab an umbrella!",
@@ -69,6 +181,8 @@ This app uses a deep learning model to classify sky images into 4 weather types:
         "analyzing": "جارٍ تحليل السماء...",
         "prediction": "🌤️ التنبؤ",
         "confidence": "مستويات الثقة:",
+        "voice_announcement": "🔊 الإعلان الصوتي مفعل",
+        "voice_playing": "🎵 جارٍ تشغيل الإعلان الصوتي...",
         "tips": {
             'Cloudy': "☁️ سماء ملبدة بالغيوم. احتمال هطول أمطار خفيفة.",
             'Rain': "🌧️ من المتوقع هطول أمطار. لا تنس المظلة!",
@@ -100,66 +214,279 @@ This app uses a deep learning model to classify sky images into 4 weather types:
     }
 }
 
-# 🌗 Dark mode toggle
-dark_mode = st.toggle("🌙 Dark Mode", value=False)
-
-# 🎨 Colors
+#  Enhanced Colors based on session state
 bg_color = "#121212" if dark_mode else "#ffffff"
 text_color = "#e0e0e0" if dark_mode else "#000000"
 header_color = "#90CAF9" if dark_mode else "#0D47A1"
 subheader_color = "#B0BEC5" if dark_mode else "#555"
 result_box_color = "#1E1E1E" if dark_mode else "#E3F2FD"
+card_bg = "#2D2D2D" if dark_mode else "#F8F9FA"
+border_color = "#404040" if dark_mode else "#E0E0E0"
 
-# 💅 Custom CSS
+# 💅 Enhanced Custom CSS with Modern Design Standards
 st.markdown("""
 <style>
-body {{
-    background-color: {bg};
-    color: {text};
+/* Root variables for consistent theming */
+:root {{
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --error-color: #f44336;
+    --text-primary: {text};
+    --bg-primary: {bg};
+    --bg-secondary: {card_bg};
+    --border-color: {border};
 }}
 
+/* Main app styling with smooth transitions */
+.stApp {{
+    background: linear-gradient(135deg, {bg} 0%, {card_bg} 100%);
+    color: {text};
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}}
+
+/* Modern button styling */
+.stButton > button {{
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white !important;
+    border: none !important;
+    border-radius: 25px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}}
+
+.stButton > button:hover {{
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4) !important;
+    background: linear-gradient(135deg, #7c4dff, #536dfe) !important;
+}}
+
+.stButton > button:active {{
+    transform: translateY(-1px) !important;
+    transition: all 0.1s !important;
+}}
+
+.stButton > button:focus {{
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3) !important;
+    outline: none !important;
+}}
+
+/* Header with gradient text */
 .header {{
-    font-size: 40px !important;
-    font-weight: 700 !important;
-    color: {header} !important;
-    margin-bottom: 10px !important;
+    font-size: 48px !important;
+    font-weight: 800 !important;
+    margin-bottom: 20px !important;
+    text-align: center !important;
+    background: linear-gradient(135deg, {header}, #42A5F5, #7c4dff) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    animation: float 3s ease-in-out infinite !important;
+}}
+
+@keyframes float {{
+    0%, 100% {{ transform: translateY(0px); }}
+    50% {{ transform: translateY(-10px); }}
 }}
 
 .subheader {{
-    font-size: 18px !important;
+    font-size: 20px !important;
     color: {subheader} !important;
-    margin-bottom: 30px !important;
+    margin-bottom: 35px !important;
+    text-align: center !important;
+    font-weight: 400 !important;
+    opacity: 0.9 !important;
 }}
 
+/* Enhanced result box with glassmorphism */
 .result-box {{
-    background-color: {box};
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 25px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 20px !important;
+    padding: 30px !important;
+    margin-top: 30px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }}
 
+.result-box:hover {{
+    transform: translateY(-5px) !important;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15) !important;
+}}
+
+/* Modern confidence bars with animations */
 .confidence-bar {{
-    height: 18px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    text-align: right;
-    padding: 2px 8px;
-    font-weight: bold;
-    color: white;
-    background: linear-gradient(90deg, #2196F3 0%, #1976D2 100%);
+    height: 24px !important;
+    border-radius: 12px !important;
+    margin-bottom: 16px !important;
+    text-align: center !important;
+    padding: 4px 16px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    color: white !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }}
 
+.confidence-bar::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}}
+
+.confidence-bar:hover {{
+    transform: scale(1.02) !important;
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+}}
+
+.confidence-bar:hover::before {{
+    left: 100%;
+}}
+
+/* Enhanced radio buttons */
 .stRadio > div {{
     flex-direction: row !important;
+    justify-content: center !important;
+    gap: 15px !important;
 }}
 
 .stRadio > div > label {{
-    margin-right: 20px !important;
+    background: {card_bg} !important;
+    border: 2px solid {border} !important;
+    border-radius: 15px !important;
+    padding: 12px 20px !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-weight: 500 !important;
+}}
+
+.stRadio > div > label:hover {{
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+    border-color: var(--primary-color) !important;
+}}
+
+/* Sidebar enhancements */
+.css-1d391kg {{
+    background: {card_bg} !important;
+    border-right: 2px solid {border} !important;
+    backdrop-filter: blur(10px) !important;
+}}
+
+/* Enhanced status messages */
+.stSuccess {{
+    background: linear-gradient(135deg, var(--success-color), #45A049) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}}
+
+.stInfo {{
+    background: linear-gradient(135deg, var(--primary-color), #1976D2) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
+}}
+
+.stError {{
+    background: linear-gradient(135deg, var(--error-color), #d32f2f) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3) !important;
+}}
+
+/* File uploader enhancements */
+.stFileUploader {{
+    border: 3px dashed {border} !important;
+    border-radius: 20px !important;
+    background: {card_bg} !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    padding: 20px !important;
+}}
+
+.stFileUploader:hover {{
+    border-color: var(--primary-color) !important;
+    background: {card_bg} !important;
+    transform: scale(1.02) !important;
+}}
+
+/* Camera input styling */
+.stCameraInput {{
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}}
+
+.stCameraInput:hover {{
+    transform: scale(1.02) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+}}
+
+/* Selectbox enhancements */
+.stSelectbox > div > div {{
+    background: {card_bg} !important;
+    border: 2px solid {border} !important;
+    border-radius: 15px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}}
+
+.stSelectbox > div > div:hover {{
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2) !important;
+}}
+
+/* Loading spinner enhancement */
+.stSpinner {{
+    border-top-color: var(--primary-color) !important;
+}}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {{
+    .header {{
+        font-size: 36px !important;
+    }}
+    
+    .subheader {{
+        font-size: 16px !important;
+    }}
+    
+    .result-box {{
+        padding: 20px !important;
+        margin-top: 20px !important;
+    }}
 }}
 </style>
 """.format(
-    bg=bg_color, text=text_color, header=header_color, subheader=subheader_color, box=result_box_color
+    bg=bg_color, 
+    text=text_color, 
+    header=header_color, 
+    subheader=subheader_color, 
+    box=result_box_color,
+    card_bg=card_bg,
+    border=border_color
 ), unsafe_allow_html=True)
 
 # 🧠 Load model
@@ -201,6 +528,7 @@ if image is not None:
             img_tensor = preprocess_image(image)
             pred, probs = predict_weather(model, img_tensor)
             class_name = WEATHER_CLASSES[pred]
+            max_confidence = probs[pred]
 
             placeholder = st.empty()
             with placeholder.container():
@@ -217,6 +545,35 @@ if image is not None:
                 st.markdown("</div>", unsafe_allow_html=True)
 
             st.success(L["tips"][class_name])
+            
+            # Voice announcement in Arabic
+            if voice_enabled:
+                # Show voice status
+                voice_status = st.empty()
+                voice_status.info(f"🔊 {L['voice_announcement']}")
+                
+                try:
+                    # Get voice announcement text in Arabic
+                    voice_text = get_voice_announcement(class_name, 'العربية', max_confidence)
+                    
+                    # Use Arabic language code for TTS
+                    lang_code = 'ar'
+                    
+                    # Update status to show playing
+                    voice_status.info(f"🎵 {L['voice_playing']}")
+                    
+                    # Play voice announcement in Arabic
+                    text_to_speech(voice_text, lang_code)
+                    
+                    # Brief delay to show the playing message
+                    time.sleep(1)
+                    
+                    # Update status to show completion
+                    voice_status.success("✅ Voice announcement completed!" if language == "English" else "✅ تم تشغيل الإعلان الصوتي!")
+                    
+                except Exception as e:
+                    voice_status.error(f"❌ Voice error: {str(e)}" if language == "English" else f"❌ خطأ في الصوت: {str(e)}")
+                    st.info("💡 Please check your system's text-to-speech settings" if language == "English" else "💡 يرجى التحقق من إعدادات النص إلى كلام")
 
 # 📌 Sidebar
 with st.sidebar:
